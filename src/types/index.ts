@@ -13,11 +13,18 @@ export interface ApiListResponse<T> {
 
 export interface Product {
   id: string;
-  category: string;
-  title: string;
-  description?: string;
-  price: number;
+  description: string;
   image: string;
+  title: string;
+  category: string;
+  price: number | null;
+}
+
+export interface EventMap {
+  'basket:add': Product;
+  'basket:remove': string;
+  'basketChanged': void;
+  'card:click': string;
 }
 
 export interface BasketItem {
@@ -36,7 +43,7 @@ export interface ICatalogModel {
   getProducts(): Promise<Product[]>;
 }
 
-export interface IBasketModel {
+export interface IBasketModel extends IEventEmitter {
   getItems(): BasketItem[];
   addItem(product: Product): void;
   removeItem(productId: string): void;
@@ -53,17 +60,53 @@ export interface IView<T = void> {
 }
 
 export interface ICatalogView extends IView<Product[]> {
-  onAddToBasket: (productId: string) => void;
+  render(products: Product[]): void;
+  onAddToBasket?: (productId: string) => void;
+  onRemoveFromBasket?: (productId: string) => void;
+  updateButtons(basketItems: BasketItem[]): void;
+
 }
 
 export interface IBasketView extends IView<BasketItem[]> {
-  onRemoveItem: (productId: string) => void;
+  onRemoveItem(productId: string): void;
   onCheckout: () => void;
 }
 
 export interface IOrderView extends IView<OrderData | undefined> {
-  onSubmitOrder: (order: OrderData) => void;
+  onSubmitOrder(order: OrderData): void;
 }
+
+export interface ICardView {
+  render(data: Product, basketItems?: Product[]): HTMLElement;
+}
+
+export interface ICardMainView extends ICardView {}
+
+export interface ICardPreviewView extends ICardView {
+  render(product: Product, basketItems: Product[]): HTMLElement;
+  onAddToBasket?: (productId: string) => void;
+  onRemoveFromBasket?: (productId: string) => void;
+}
+
+export interface ICardBasketView extends ICardView {
+  onRemove(productId: string): void;
+}
+
+export interface IBaseFormView extends IView<void> {
+  getFormData(): Record<string, string>;
+  validate(): boolean;
+  cleanErrors(): void;
+}
+
+export interface IOrderContactView extends IBaseFormView {
+  onNext: () => void;
+}
+
+export interface IOrderAddressView extends IBaseFormView {
+  onSubmitOrder(order: OrderData): void;
+}
+
+export interface IOrderSuccessView extends IView<void> {}
 
 export interface ICatalogPresenter {
   loadProduct(): Promise<void>;
