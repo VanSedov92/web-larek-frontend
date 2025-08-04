@@ -1,4 +1,4 @@
-import { IOrderAddressView, OrderData } from '../../types/index';
+import { IOrderAddressView, AddressFormData } from '../../types/index';
 
 export class OrderAddressView implements IOrderAddressView {
   private container: HTMLElement;
@@ -8,7 +8,10 @@ export class OrderAddressView implements IOrderAddressView {
   private submitButton: HTMLButtonElement;
   private errorsContainer: HTMLElement;
 
-  public onSubmitOrder: (order: OrderData) => void = () => {};
+  public onSubmitOrder: (order: AddressFormData) => void = () => {};
+  public onAddressChange: (address: string) => void = () => {};
+  public onPaymentMethodChange: (method: 'online' | 'offline') => void = () => {};
+  public onFieldChange: (field: keyof AddressFormData, value: string) => void = () => {};
 
   private selectedPaymentMethod: 'online' | 'offline' | null = null;
 
@@ -20,79 +23,75 @@ export class OrderAddressView implements IOrderAddressView {
     this.submitButton = this.form.querySelector('button[type="submit"]') as HTMLButtonElement;
     this.errorsContainer = this.form.querySelector('.form__errors') as HTMLElement;
 
+    this.addressInput.addEventListener('input', () => {
+      this.onAddressChange(this.addressInput.value.trim());
+    });
+
     this.paymentButtons.forEach(button => {
       button.addEventListener('click', () => {
-        this.selectPaymentMethod(button);
+        const method = button.name === 'card' ? 'online' : 'offline';
+        this.onFieldChange('paymentMethod', method);
       });
     });
 
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (this.validate() && this.selectedPaymentMethod) {
-        this.onSubmitOrder({
-          paymentMethod: this.selectedPaymentMethod,
-          address: this.addressInput.value.trim(),
-          email: '',
-          phone: '',
-        });
-      }
+      const data = this.getFormData();
+      this.onSubmitOrder(data);
     });
 
-    this.form.addEventListener('input', () => {
-      this.cleanErrors();
-      this.updateButtonState();
+    this.addressInput.addEventListener('input', () => {
+      this.onFieldChange('address', this.addressInput.value.trim());
     });
 
-    this.updateButtonState();
   }
 
   render(): void {
     this.form.reset();
     this.selectedPaymentMethod = null;
     this.cleanErrors();
-    this.updateButtonState();
-    this.paymentButtons.forEach(btn => btn.classList.remove('button_active'));
+    this.submitButton.disabled = true;
   }
 
-  getFormData(): Record<string, string> {
-    return {
-      paymentMethod: this.selectedPaymentMethod ?? '',
-      address: this.addressInput.value.trim(),
-    };
+  update(data: {
+    address: string;
+    paymentMethod: 'online' | 'offline' | null;
+    errors: string[];
+    isSubmitEnabled: boolean;
+  }): void {
+    this.addressInput.value = data.address;
+    this.selectedPaymentMethod = data.paymentMethod;
+
+    this.paymentButtons.forEach(btn => {
+      btn.classList.toggle(
+        'button_active',
+        (btn.name === 'card' && data.paymentMethod === 'online') ||
+        (btn.name !== 'card' && data.paymentMethod === 'offline')
+      );
+    });
+
+    this.errorsContainer.textContent = data.errors.join('. ');
+    this.submitButton.disabled = !data.isSubmitEnabled;
   }
 
-  validate(): boolean {
-    this.cleanErrors();
-    const errors: string[] = [];
+  getFormData(): AddressFormData {
+    const paymentMethod = this.selectedPaymentMethod;
+    const address = this.addressInput.value.trim();
+    if (!paymentMethod) {
+      throw new Error('Способ оплаты не выбран');
+    }
+    return { paymentMethod, address};
+  }
 
-    if (!this.selectedPaymentMethod) {
-      errors.push('Выберите способ оплаты');
-    }
-    if (!this.addressInput.value.trim()) {
-      errors.push('Введите адрес доставки');
-    }
+  setSubmitEnabled(isEnabled: boolean): void {
+    this.submitButton.disabled = !isEnabled;
+  }
 
-    if (errors.length > 0) {
-      this.errorsContainer.textContent = errors.join('. ');
-      return false;
-    }
-    return true;
+  showErrors(errors: string[]): void {
+    this.errorsContainer.textContent = errors.join('. ');
   }
 
   cleanErrors(): void {
     this.errorsContainer.textContent = '';
-  }
-
-  private selectPaymentMethod(button: HTMLButtonElement): void {
-    this.selectedPaymentMethod = button.name === 'card' ? 'online' : 'offline';
-
-    this.paymentButtons.forEach(btn => btn.classList.remove('button_active'));
-    button.classList.add('button_active');
-
-    this.updateButtonState();
-  }
-
-  private updateButtonState(): void {
-    this.submitButton.disabled = !this.addressInput.value.trim() || !this.selectedPaymentMethod;
   }
 }

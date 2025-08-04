@@ -34,7 +34,7 @@ export class CatalogView implements ICatalogView {
       this.container.appendChild(card);
     });
   }
-
+/*
   updateButtons(basketItems: BasketItem[]): void {
     const productIdsInBasket = basketItems.map(item => item.product.id);
 
@@ -57,4 +57,6 @@ export class CatalogView implements ICatalogView {
       }
     });
   }
+
+  */
 }

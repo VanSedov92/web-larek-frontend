@@ -2,14 +2,19 @@ import { Product, ICardBasketView } from "../../types/index";
 
 export class CardBasketView implements ICardBasketView {
   private template: HTMLTemplateElement;
-  public onRemove: (productId: string) => void;
+  private handleRemove!: (productId: string) => void;
 
-  constructor() {
+  constructor(onRemove: (productId: string) => void) {
     const templateElement = document.getElementById('card-basket');
     if (!(templateElement instanceof HTMLTemplateElement)) {
       throw new Error('Шаблон карточки корзины не найден');
     }
     this.template = templateElement;
+    this.handleRemove = onRemove;
+  }
+
+  onRemove(productId: string): void {
+    this.handleRemove(productId);
   }
 
   render(data: Product): HTMLElement {
@@ -32,7 +37,7 @@ export class CardBasketView implements ICardBasketView {
     btn.dataset.id = data.id;
 
     btn.addEventListener('click', () => {
-      this.onRemove?.(data.id);
+      this.onRemove(data.id);
     });
 
     return card;

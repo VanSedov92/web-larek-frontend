@@ -1,25 +1,22 @@
-import { BasketItem, IBasketView, ICardBasketView } from '../../types/index';
+import {
+  BasketItem,
+  IBasketView,
+  ICardBasketView,
+  ICardBasketViewConstructor,
+} from '../../types/index';
 
 export class BasketView implements IBasketView {
   private container: HTMLElement;
-  private template: HTMLTemplateElement;
   private basketList: HTMLElement;
   private checkoutButton: HTMLButtonElement;
+  private CardBasketViewClass: ICardBasketViewConstructor;
 
   public onRemoveItem: (productId: string) => void = () => {};
   public onCheckout: () => void = () => {};
 
-  constructor(container: HTMLElement, templateId: string) {
+  constructor(container: HTMLElement, CardBasketViewClass: ICardBasketViewConstructor) {
     this.container = container;
-
-    const templateElement = document.getElementById(templateId);
-    if (!(templateElement instanceof HTMLTemplateElement)) {
-      throw new Error('Шаблон корзины не найден');
-    }
-    this.template = templateElement;
-
-    const basketContent = this.template.content.firstElementChild!.cloneNode(true) as HTMLElement;
-    this.container.appendChild(basketContent);
+    this.CardBasketViewClass = CardBasketViewClass;
 
     this.basketList = this.container.querySelector('.basket__list')!;
     this.checkoutButton = this.container.querySelector('.basket__button')!;
@@ -33,33 +30,19 @@ export class BasketView implements IBasketView {
     this.basketList.textContent = '';
 
     items.forEach((item, index) => {
-      const card = this.createBasketItem(item, index + 1);
-      this.basketList.appendChild(card);
+      const cardView = new this.CardBasketViewClass();
+
+      cardView.onRemove = (productId: string) => {
+        this.onRemoveItem(productId);
+      };
+
+      const cardElement = cardView.render(item.product);
+
+      const indexSpan = cardElement.querySelector('.basket__item-index');
+      if (indexSpan) {
+        indexSpan.textContent = (index + 1).toString();
+      }
+      this.basketList.appendChild(cardElement);
     });
-  }
-
-  private createBasketItem(item: BasketItem, index: number): HTMLElement {
-    const template = document.getElementById('card-basket');
-    if (!(template instanceof HTMLTemplateElement)) {
-      throw new Error('Шаблон карточки корзины не найден');
-    }
-
-    const card = template.content.firstElementChild!.cloneNode(true) as HTMLElement;
-
-    const indexSpan = card.querySelector('.basket__item-index')!;
-    indexSpan.textContent = index.toString();
-
-    const titleSpan = card.querySelector('.card__title')!;
-    titleSpan.textContent = item.product.title;
-
-    const priceSpan = card.querySelector('.card__price')!;
-    priceSpan.textContent = `${item.product.price} синапсов`;
-
-    const btnDelete = card.querySelector('.basket__item-delete')!;
-    btnDelete.addEventListener('click', () => {
-      this.onRemoveItem(item.product.id);
-    });
-
-    return card;
   }
 }

@@ -32,12 +32,33 @@ export interface BasketItem {
   quantity: number;
 }
 
-export interface OrderData {
+export interface AddressFormData {
   paymentMethod: 'online' | 'offline';
   address: string;
+}
+
+export interface ContactFormData {
   email: string;
   phone: string;
 }
+
+export type OrderData = ContactFormData & AddressFormData;
+
+export interface IOrderContactModel extends IEventEmitter {
+  setData(data: ContactFormData): void;
+  getData(): ContactFormData;
+  getErrors(): string[];
+  isValid(): boolean;
+  setField<K extends keyof ContactFormData>(field: K, value: ContactFormData[K]): void;
+}
+
+export interface IOrderAddressModel extends IEventEmitter {
+  setField<K extends keyof AddressFormData>(field: K, value: AddressFormData[K]): void;
+  getData(): AddressFormData;
+  getErrors(): string[];
+  isValid(): boolean;
+}
+
 
 export interface ICatalogModel {
   getProducts(): Promise<Product[]>;
@@ -63,8 +84,6 @@ export interface ICatalogView extends IView<Product[]> {
   render(products: Product[]): void;
   onAddToBasket?: (productId: string) => void;
   onRemoveFromBasket?: (productId: string) => void;
-  updateButtons(basketItems: BasketItem[]): void;
-
 }
 
 export interface IBasketView extends IView<BasketItem[]> {
@@ -92,19 +111,37 @@ export interface ICardBasketView extends ICardView {
   onRemove(productId: string): void;
 }
 
-export interface IBaseFormView extends IView<void> {
-  getFormData(): Record<string, string>;
-  validate(): boolean;
+export interface ICardBasketViewConstructor {
+  new (): ICardBasketView;
+}
+
+export interface IBaseFormView<T extends Record<string, any> = Record<string, string>>  {
+  getFormData(): T;
   cleanErrors(): void;
 }
 
-export interface IOrderContactView extends IBaseFormView {
+export interface IOrderContactView extends IBaseFormView<ContactFormData> {
   onNext: () => void;
+  showErrors(errors: string[]): void;
+  setSubmitEnabled(enabled: boolean): void;
+  onFieldChange: (field: keyof ContactFormData, value: string) => void;
 }
 
-export interface IOrderAddressView extends IBaseFormView {
-  onSubmitOrder(order: OrderData): void;
+export interface IOrderAddressView {
+  render(): void;
+  update(data: {
+    address: string;
+    paymentMethod: 'online' | 'offline' | null;
+    errors: string[];
+    isSubmitEnabled: boolean;
+  }): void;
+  getFormData(): AddressFormData;
+  onSubmitOrder: (order: AddressFormData) => void;
+  onAddressChange: (address: string) => void;
+  onPaymentMethodChange: (method: 'online' | 'offline') => void;
+  cleanErrors(): void;
 }
+
 
 export interface IOrderSuccessView extends IView<void> {}
 
@@ -126,10 +163,4 @@ export interface IOrderPresenter {
 export interface IModal {
   open(content: HTMLElement): void;
   close(): void;
-}
-
-export interface IFormValidator {
-  validate(): boolean;
-  cleanErrors(): void;
-  getFormData(): Record<string, string>;
 }

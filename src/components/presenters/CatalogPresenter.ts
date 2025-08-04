@@ -27,11 +27,7 @@ export class CatalogPresenter {
 
     this.view.onAddToBasket = this.handleAddToBasket.bind(this);
     this.view.onRemoveFromBasket = this.handleRemoveFromBasket.bind(this);
-
-    this.events.on('basketChanged', () => {
-      this.updateButtons();
-    });
-
+    
     this.events.on('card:click', async (data: { productId: string }) => {
       const { productId } = data;
       try {
@@ -57,7 +53,6 @@ export class CatalogPresenter {
     try {
       const products = await this.model.getProducts();
       this.view.render(products);
-      this.updateButtons();
     } catch (error: unknown) {
       console.error('Ошибка загрузки продуктов:', error);
     }
@@ -76,10 +71,5 @@ export class CatalogPresenter {
 
   handleRemoveFromBasket(productId: string): void {
     this.events.emit('basket:remove', { productId });
-  }
-
-  updateButtons(): void {
-    const basketItems = this.basketModel.getItems();
-    this.view.updateButtons(basketItems);
   }
 }
